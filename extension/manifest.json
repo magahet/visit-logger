@@ -1,0 +1,26 @@
+{
+  "name": "Visit Logger",
+  "version": "0.0.1",
+  "manifest_version": 3,
+  "description": "Visit Logger watches Chrome tab changes and sends page viewing history to a remote server.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "default_locale": "en",
+  "background": {
+    "service_worker": "src/bg/background.js"
+  },
+  "permissions": [
+    "tabs",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://*/*"
+  ],
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": false
+  }
+}
