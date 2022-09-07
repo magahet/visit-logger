@@ -139,6 +139,6 @@ func main() {
 	v := validator.New()
 	s := server{c, v}
 
-	http.HandleFunc("/", s.rootHandler)
+	http.HandleFunc("/logs", s.rootHandler)
 	http.ListenAndServe(":5000", nil)
 }
