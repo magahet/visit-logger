@@ -17,7 +17,8 @@
     "storage"
   ],
   "host_permissions": [
-    "https://*/*"
+    "https://*/*",
+    "http://*/*"
   ],
   "options_ui": {
     "page": "options.html",

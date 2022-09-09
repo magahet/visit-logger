@@ -70,7 +70,8 @@ func (s *server) generateReport(name string) []byte {
 
 func (s *server) rootHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
-	case "GET":
+
+	case http.MethodGet:
 		name := r.URL.Query().Get("name")
 		if err := s.validate.Var(name, "required,lowercase,alpha,gte=1,lte=20"); err != nil {
 			j, _ := json.Marshal(map[string]string{"error": "name is not valid"})
@@ -78,22 +79,9 @@ func (s *server) rootHandler(w http.ResponseWriter, r *http.Request) {
 			return
 
 		}
-
 		w.Write(s.generateReport(name))
-	case "POST":
-		if r.Method == http.MethodOptions {
-			w.Header().Set("Access-Control-Allow-Origin", "*")
-			w.Header().Set("Access-Control-Allow-Methods", "POST")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-			w.Header().Set("Access-Control-Max-Age", "3600")
-			w.WriteHeader(http.StatusNoContent)
-			log.Println("Sending CORS headers")
-			return
-		}
 
-		// Set CORS headers for the main request.
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-
+	case http.MethodPost:
 		r.Body = http.MaxBytesReader(w, r.Body, 4096)
 
 		var e Entry
@@ -134,11 +122,39 @@ func (s *server) rootHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
+func cors(f http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+
+		if r.Method == http.MethodOptions {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w.Header().Set("Access-Control-Allow-Methods", "POST")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+			w.Header().Set("Access-Control-Max-Age", "3600")
+			w.WriteHeader(http.StatusNoContent)
+			log.Println("Sending CORS headers")
+			return
+		}
+		f(w, r)
+	}
+}
+
+func (s *server) namesHandler(w http.ResponseWriter, r *http.Request) {
+	names := make([]string, 0, len(s.caches))
+	for n := range s.caches {
+		names = append(names, n)
+	}
+
+	j, _ := json.Marshal(map[string][]string{"names": names})
+	w.Write(j)
+}
+
 func main() {
 	c := make(map[string]*lru.Cache)
 	v := validator.New()
 	s := server{c, v}
 
-	http.HandleFunc("/logs", s.rootHandler)
+	http.HandleFunc("/logs", cors(s.rootHandler))
+	http.HandleFunc("/names", cors(s.namesHandler))
 	http.ListenAndServe(":5000", nil)
 }
