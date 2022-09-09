@@ -17,14 +17,10 @@
           </template>
 
           <template v-slot:[`item.title`]="{ item }">
-            <span
-              style="word-wrap: break-word;word-break: break-all;width:auto">{{
-              item.title
-              }}</span>
-            <!-- <v-btn text plain class="text-decoration-none" :href="item.url"
+            <a class="text-decoration-none title-link " :href="item.url"
               target="_blank">{{
-                  item.title
-              }}</v-btn> -->
+              item.title
+              }}</a>
           </template>
 
         </v-data-table>
@@ -75,5 +71,10 @@ export default {
 </script>
 
 <style>
-
+.title-link {
+  color: rgba(0, 0, 0, 0.87) !important;
+  word-wrap: break-word;
+  word-break: break-all;
+  width: auto;
+}
 </style>
