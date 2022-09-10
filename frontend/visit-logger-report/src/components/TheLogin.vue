@@ -9,8 +9,10 @@
           <v-card-text>
             <v-form>
               <v-text-field v-model="password" id="password"
-                prepend-icon="mdi-lock" name="password" label="Password"
-                type="text"></v-text-field>
+                :append-icon="showPass ? 'mdi-eye' : 'mdi-eye-off'"
+                @click:append="showPass = !showPass" prepend-icon="mdi-lock"
+                name="password" label="Password"
+                :type="showPass ? 'text' : 'password'"></v-text-field>
             </v-form>
           </v-card-text>
           <v-card-actions>
@@ -28,7 +30,8 @@ export default {
   name: 'TheLogin',
   data() {
     return {
-      password: null
+      password: null,
+      showPass: false
     }
   },
   methods: {
