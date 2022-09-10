@@ -35,7 +35,7 @@ import moment from 'moment'
 
 export default {
   name: 'HelloWorld',
-
+  props: ['password'],
   data: () => ({
     names: ['gar'],
     entries: [],
@@ -47,7 +47,11 @@ export default {
     ]
   }),
   async created() {
-    const response = await fetch(`https://instance-1.gmendiola.com/names`)
+    const response = await fetch(`https://instance-1.gmendiola.com/names`, {
+      headers: {
+        'X-Api-Key': this.password
+      }
+    })
     const data = await response.json()
     this.names = data?.names
 
@@ -56,7 +60,11 @@ export default {
   methods: {
     async loadReport(name) {
       this.loading = true
-      const response = await fetch(`https://instance-1.gmendiola.com/logs?name=${name}`)
+      const response = await fetch(`https://instance-1.gmendiola.com/logs?name=${name}`, {
+        headers: {
+          'X-Api-Key': this.password
+        }
+      })
       const report = await response.json()
       this.entries = report?.entries
       this.loading = false

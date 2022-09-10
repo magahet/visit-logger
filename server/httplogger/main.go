@@ -3,8 +3,11 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"log"
 	"net/http"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -12,7 +15,14 @@ import (
 )
 
 const (
-	cacheSize = 100
+	cacheSize  = 100
+	apiKeyPath = "/secrets/apikey"
+)
+
+var (
+	caches   map[string]*lru.Cache
+	validate *validator.Validate
+	apiKey   string
 )
 
 func init() {
@@ -20,6 +30,7 @@ func init() {
 	// Prefix text prevents the message from being parsed as JSON.
 	// A timestamp is added when shipping logs to Cloud Logging.
 	log.SetFlags(0)
+
 }
 
 // Entry defines a log entry.
@@ -36,18 +47,13 @@ func (e Entry) String() string {
 	return string(j)
 }
 
-type server struct {
-	caches   map[string]*lru.Cache
-	validate *validator.Validate
-}
-
 type Report struct {
 	Name    string   `json:"name"`
 	Entries []*Entry `json:"entries"`
 }
 
-func (s *server) generateReport(name string) []byte {
-	cache, ok := s.caches[name]
+func generateReport(name string) []byte {
+	cache, ok := caches[name]
 	if !ok {
 		j, _ := json.Marshal(map[string]string{"error": "No entries found for given name"})
 		log.Println("No entries found for given name:", name)
@@ -68,18 +74,25 @@ func (s *server) generateReport(name string) []byte {
 	return j
 }
 
-func (s *server) rootHandler(w http.ResponseWriter, r *http.Request) {
+func rootHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 
 	case http.MethodGet:
 		name := r.URL.Query().Get("name")
-		if err := s.validate.Var(name, "required,lowercase,alpha,gte=1,lte=20"); err != nil {
+		if err := validate.Var(name, "required,lowercase,alpha,gte=1,lte=20"); err != nil {
 			j, _ := json.Marshal(map[string]string{"error": "name is not valid"})
 			w.Write(j)
 			return
-
 		}
-		w.Write(s.generateReport(name))
+
+		// Auth check
+		if r.Header.Get("X-Api-Key") != apiKey {
+			w.WriteHeader(http.StatusForbidden)
+			log.Println("Auth header invalid:", r.Header.Get("X-Api-Key"))
+			return
+		}
+
+		w.Write(generateReport(name))
 
 	case http.MethodPost:
 		r.Body = http.MaxBytesReader(w, r.Body, 4096)
@@ -96,10 +109,10 @@ func (s *server) rootHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		c, ok := s.caches[e.Name]
+		c, ok := caches[e.Name]
 		if !ok {
 			c, _ = lru.New(cacheSize)
-			s.caches[e.Name] = c
+			caches[e.Name] = c
 			log.Println("New cache created for:", e.Name)
 		}
 
@@ -128,8 +141,8 @@ func cors(f http.HandlerFunc) http.HandlerFunc {
 
 		if r.Method == http.MethodOptions {
 			w.Header().Set("Access-Control-Allow-Origin", "*")
-			w.Header().Set("Access-Control-Allow-Methods", "POST")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-Api-Key")
 			w.Header().Set("Access-Control-Max-Age", "3600")
 			w.WriteHeader(http.StatusNoContent)
 			log.Println("Sending CORS headers")
@@ -139,9 +152,16 @@ func cors(f http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-func (s *server) namesHandler(w http.ResponseWriter, r *http.Request) {
-	names := make([]string, 0, len(s.caches))
-	for n := range s.caches {
+func namesHandler(w http.ResponseWriter, r *http.Request) {
+	// Auth check
+	if r.Header.Get("X-Api-Key") != apiKey {
+		w.WriteHeader(http.StatusForbidden)
+		log.Printf("Auth header invalid: [%s] != [%s]", r.Header.Get("X-Api-Key"), apiKey)
+		return
+	}
+
+	names := make([]string, 0, len(caches))
+	for n := range caches {
 		names = append(names, n)
 	}
 
@@ -150,11 +170,22 @@ func (s *server) namesHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	c := make(map[string]*lru.Cache)
-	v := validator.New()
-	s := server{c, v}
 
-	http.HandleFunc("/logs", cors(s.rootHandler))
-	http.HandleFunc("/names", cors(s.namesHandler))
+	flag.StringVar(&apiKey, "key", "", "API Key")
+	flag.Parse()
+
+	caches = make(map[string]*lru.Cache)
+	validate = validator.New()
+
+	if apiKey == "" {
+		apiKeyBytes, err := os.ReadFile(apiKeyPath)
+		if err != nil {
+			log.Fatal(err)
+		}
+		apiKey = strings.TrimSpace(string(apiKeyBytes))
+	}
+
+	http.HandleFunc("/logs", cors(rootHandler))
+	http.HandleFunc("/names", cors(namesHandler))
 	http.ListenAndServe(":5000", nil)
 }
