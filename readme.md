@@ -21,16 +21,18 @@ The service includes a makefile to compile the Go app and a Docker Compose file 
 
 External Docker volumes are needed to contain Caddy configs and httplogger API key. The following process populates these on first deploy:
 
-	docker volume create caddy
-	docker volume create caddy_data
-	docker volume create secrets
+```
+docker volume create caddy
+docker volume create caddy_data
+docker volume create secrets
 
-  docker compose up -d
+docker compose up -d
 
-  docker cp Caddyfile httplogger-caddy:/ect/caddy/
-  docker cp apikey httplogger-httplogger:/secrets/
+docker cp Caddyfile httplogger-caddy:/ect/caddy/
+docker cp apikey httplogger-httplogger:/secrets/
 
-  docker compose restart
+docker compose restart
+```
 
 
 ## Chrome History Report
