@@ -8,7 +8,7 @@
 
     <v-row>
       <v-card>
-        <v-data-table v-if="entries.length" :headers="headers" :items="entries"
+        <v-data-table v-if="entries?.length" :headers="headers" :items="entries"
           :items-per-page="30" class="elevation-1" :loading="loading"
           :sort-by="'lastSeen'" :sort-desc="true" calculate-widths dense>
 

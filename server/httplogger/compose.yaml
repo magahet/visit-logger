@@ -1,0 +1,27 @@
+version: "3.9"
+services:
+  httplogger:
+    build: .
+    volumes:
+      - secrets:/secrets
+  caddy:
+    image: "caddy"
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - caddy:/etc/caddy
+      - caddy_data:/data
+      - caddy_config:/config
+
+
+volumes:
+  secrets:
+    external: true
+  caddy:
+    external: true
+  caddy_data:
+    external: true
+  caddy_config:

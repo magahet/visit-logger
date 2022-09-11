@@ -1,0 +1,4 @@
+instance-1.gmendiola.com {
+    reverse_proxy httplogger:5000 {
+    }
+}

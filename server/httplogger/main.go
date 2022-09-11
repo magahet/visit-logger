@@ -10,7 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-playground/validator/v10"
+	validator "gopkg.in/go-playground/validator.v8"
+
 	lru "github.com/hashicorp/golang-lru"
 )
 
@@ -140,7 +141,6 @@ func cors(f http.HandlerFunc) http.HandlerFunc {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 
 		if r.Method == http.MethodOptions {
-			w.Header().Set("Access-Control-Allow-Origin", "*")
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST")
 			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-Api-Key")
 			w.Header().Set("Access-Control-Max-Age", "3600")
