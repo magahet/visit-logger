@@ -28,6 +28,7 @@ function getAllStorageSyncData() {
 }
 
 
+// Add a listener for tab changes and send tab title and url to a user configured server.
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   try {
     await initStorageCache
@@ -51,8 +52,6 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
     'name': name
   }
   console.log(entity)
-
-  //https://us-west1-gars-cloud.cloudfunctions.net/visit-logger
 
   fetch(server, {
     method: 'POST',
